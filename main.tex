@@ -1,0 +1,376 @@
+\documentclass[11pt]{article}
+\usepackage{NotesTeX,lipsum}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{subfig}
+\usepackage{listings}
+\usepackage{mips}
+\usepackage{amsmath,amssymb}
+\usepackage{minted}
+\usepackage{lmodern}
+\usepackage[many]{tcolorbox}
+\usepackage{graphicx}
+\usepackage{multirow}
+
+\graphicspath{ {./} }
+% \usepackage{lipsum}
+
+\makeatletter
+\tcbset{
+    myhbox/.style 2 args={%
+        enhanced, 
+        breakable,
+        colback=white,
+        colframe=blue!30!black,
+        attach boxed title to top left={yshift*=-\tcboxedtitleheight}, 
+        title={#2},
+        boxed title size=title,
+        boxed title style={%
+            sharp corners, 
+            rounded corners=northwest, 
+            colback=tcbcolframe, 
+            boxrule=0pt,
+        },
+        underlay boxed title={%
+            \path[fill=tcbcolframe] (title.south west)--(title.south east) 
+                to[out=0, in=180] ([xshift=5mm]title.east)--
+                (title.center-|frame.east)
+                [rounded corners=\kvtcb@arc] |- 
+                (frame.north) -| cycle; 
+        },
+        #1
+    },
+}
+\makeatother
+
+\newtcolorbox{myhbox}[2][]{%
+    myhbox={#1}{#2}
+}
+
+\newtcolorbox{myvbox}[2][]{%
+    myvbox={#1}{#2}
+}
+
+
+\title{{Advanced Nim}\\{\normalsize{\itshape IE616 Mini-Project}}}
+\author{Atishay Jain (210050026)  \\ Aryan Mathe (210050021) \\ Chaitanya Aggarwal (210050038)}
+\emailAdd{210050026@iitb.ac.in \\ 210050021@iitb.ac.in \\ 210050038@iitb.ac.in}
+
+\begin{document}
+\maketitle
+\pagestyle{fancynotes}
+
+\lstset{
+    language=[mips]{Assembler},
+    basicstyle=\color{NavyBlue}\ttfamily,
+    keywordstyle=\color{Magenta}\ttfamily,
+    stringstyle=\color{red}\ttfamily,
+    commentstyle=\color{BurntOrange}\ttfamily,
+    morecomment=[l][\color{magenta}]{\#},
+    breaklines=true,
+    tabsize=2,
+    gobble=2
+}
+
+\part{Nim}       
+\vspace{2mm}
+\section{Standard Nim}
+Lets start with discussion on the standard game of Nim, which is a impartial game played between 2 players.
+\begin{definition}
+Nim is an impartial game in which a position consists of $l$ piles of stones of sizes $a_1, a_2, ..., a_l$. A player removes one or more (up to all) stones from a chosen pile in its move. The last player to take a stone wins.
+\end{definition}
+There are different types of positions in Nim. For any non-negative integer $\alpha$ let $*\alpha$ denote a Nim position consisting of a single pile of $\alpha$ stones. Then, we denote a position with piles of sizes $a_1, a_2, ... , a_l$ by the sum notation $*\alpha_1 + *\alpha_2 + ... + *\alpha_l$.
+
+\subsection{MEX (Minimum Excludant)}
+Suppose you have a set of numbers. 
+\begin{definition}
+Minimum excludant (MEX) of a set is defined as the least non-negative number which is not present in the set. 
+\end{definition}
+In other words, if we consider the complement set, then MEX is the minimum non-negative element in it. Such MEX values also have applications in greedy graph coloring algorithms. 
+\begin{example}
+\begin{itemize}
+    \item $MEX(\phi) = 0$
+    \item $MEX(1,2,5,100) = 0$
+    \item $MEX(1,5,9,13) = 0$
+    \item $MEX(0,2,4,6,8 ... ) = 1$
+    \item $MEX(0,1,2,3 ... , \omega) = \omega + 1$
+    \item $MEX(0,1,2,3 ...) = \omega$
+\end{itemize}
+\end{example}	
+\begin{remark}
+Here, $\omega$ represents the ordinal limit of natural numbers.
+\end{remark}
+
+\subsection{Grundy Number ($G(N)$)}
+It is a number that we use to define the state of a combinatorial game. We can also use it to define any impartial game like Nim also. The calculation of Grundy number is based on MEX calculation. \\
+\begin{definition}
+    Grundy Number is $0$ for a game, which is immediately lost by player who makes first move, else the Grundy Number is the MEX of all the numbers which are possible in next positions by making a move in the game
+\end{definition}
+\begin{example}
+    Lets take a simple example to understand G(N). A game of standard Nim with a single pile of $N$ coins and 2 players. We will try to find $G(N)$ for different values of $N$ -
+    \begin{itemize}
+        \item $N = 0$ : first player has nothing to pick, he lost immediately $\implies G(N) = 0$ 
+        \item $N = 1$ : first player will pick this 1 coin and 0 coin will be left then which have $G(0) = 0$. So, $G(1) = MEX({G(0)}) = 1$
+        \item $N = 2$ : There are 2 cases, if first player picks 1 coin then we will be left with a single coin with $G(1) = 1$ or if the first player picks both coins, then we will be left with 0 coins with $G(0) 0$. Therefore, $G(2) = MEX({G(0), G(1)}) = 2$
+        \item $N = 3$ : After making cases similar to $N = 2$ case, we get $G(3) = 3$, and in general $G(N) = N$
+    \end{itemize}
+\end{example}
+We know that we use the XOR (exclusive-OR) of Grundy Number of size of piles to solve the standard game of Nim. In the next section, we will see a modified version of Nim called Advanced Nim or Zero move Nim. We will try to solve it using a similar but modified approach and write a code for its implemetation as well. We have also designed a Dynamic Programming based implementation for solving it, which we will review later.
+\newpage
+
+\part{Advanced Nim}
+\vspace{2mm}
+\section{Zero Move Nim Game}
+In this modified version of Nim, we include a new \textbf{Zero move} rule.
+\begin{definition}
+    Zero move rule is such that it allows the players to remove zero coins in a move and such a move can be used only once per ``pile" by either of the players.
+\end{definition}
+For solving this version of Nim, lets start by deducing a way to find Grundy Number for it -
+
+\subsection{Grundy Number for Advanced Nim}
+Lets start with some notation. We say the move of picking 0 number of coins as zero move. We will denote $nF$ as the pile of size $n$ in which no zero moves are left, that is the zero move of this pile which was allowed to be used only once has been used. The pile of size $n$ in which zero moves are left will be represented by $nT$. 
+\begin{remark}
+    Note that we can reach the state of $nF$ from $nT$ for a value of $n$, but not reverse.
+\end{remark}
+\begin{remark}
+    Note that $G(N)$ is actually same as $G(nT)$
+\end{remark}
+
+\begin{example}
+    Again we will look into the same previous example setting to understand -
+    \begin{itemize}
+        \item $N = 0$ : $G(0) = 0$, as first player loses immediately
+        \item $N = 1$ : There are 2 cases here -
+        \begin{enumerate}
+            \item If $nF = 1$ : This means pile has no zero moves left, so first player picks 1 coin and thus $G(1F) = MEX({0}) = 1$
+            \item If $nT = 1$ : There are 2 moves possible. First player can pick 1 coin and then 0 coins left, which is same as above and has $G(0)$. Second possibility is that first player makes \textit{zero move}, now game reaches $1F$ state again with grundy number as $G(1F)$. So, $G(1T) = MEX({0, G(1F)}) = 2$
+        \end{enumerate}
+        So, overall $G(1) = G(nT) = 2$
+        \item $N = 2$ : There are 2 cases here -
+        \begin{enumerate}
+            \item $nF = 2$ : This means a pile of size 2 and no zero moves left. So either first player picks 2 coins resulting in $G(0)$ state or, he can pick 1 coin resulting in $1F$ state. Therefore $G(2F) = MEX({0, G(1F)}) = 2$
+            \item $nT = 2$ : There are 3 possibilited here. First player can pick 2 coin resulting in $G(0)$ state, or he can pick 1 coin resulting in new $1T$ state. Another possibility is that he can make a zero move resulting in $2F$ state. Therefore, $G(2T) = MEX({0, G(1T), G(2F)}) = MEX({0,2,2}) = 1$
+        \end{enumerate}
+        Hence, $G(2) = G(2T) = 1$
+        \item $N = 3$ : There are 2 cases -
+        \begin{enumerate}
+            \item $nF = 3$ : After making similar cases as shown in previous calculation, here we will get $G(3F) = MEX({0, G(1F), G(2F)}) = MEX({0,1,2}) = 3$
+            \item $nT = 3$ : Similarly here we will consider a zero move and get $G(3T) = MEX({0, G(1T), G(2T), G(3F)}) = MEX({0,2,1,3}) = 4$
+        \end{enumerate}
+        Therefore, we get $G(3) = G(3T) = 4$
+    \end{itemize}
+\end{example}
+
+\begin{remark}
+    In $N = 0$ case, we cannot pick a 0 coin as a zero move because zero move is defined for piles of nonzero size only
+\end{remark}
+\begin{remark}
+    Note that in $N = 2$ case, you cannot reach $1F$ from current state of $2T$ because it will require 2 simultanoues moves of picking one coin and a zero move, which is not possible
+\end{remark}
+
+So, from the example, we can say that for a pile of size $N$, if it is in $nF$ state, then 
+\begin{equation*}
+    G(nF) = MEX({0,G(1F), G(2F), ... G((n-1)F)}) = n
+\end{equation*}
+or if is in $nT$ state, then
+
+\begin{equation*}
+    G(nT) = MEX({0, G(1T), G(2T), ... G((n-1)T), G(nF)})
+\end{equation*}
+After performing calcultaion for more values of $N$ and since there is a pattern in $G(1T)$ and $G(1F)$, we can easily deduce that for in general for a pile of size $N$, 
+
+\begin{formulae}
+\begin{equation*}
+    G(N) = 
+\left\{
+	\begin{array}{cc}
+		N + 1  & \mbox{, } N is Odd \\ \\
+		N - 1 & \mbox{, } N is Even
+	\end{array}
+\right.
+\end{equation*}
+\end{formulae}
+
+\subsection{Winning Strategy and States}
+Here, also we have used cumulative XOR for finding the winning state of the game. These are based on an assumption considering that both the players play optimally, that is they do not make any moves which may reduce the winning chances of themselves. 
+\subsubsection{Winning State}
+\begin{properties}
+The player to play first move will win the game if and only if the cumulative XOR (also known as \textbf{Nim Sum}) of the Grundy Numbers of sizes of all the piles is \textbf{non-zero}. 
+\end{properties}
+
+\subsubsection{Losing State}
+\begin{properties}
+The player to play first move will lose the game if and only if the cumulative XOR (also known as \textbf{Nim Sum}) of the Grundy Numbers of sizes of all the piles is \textbf{zero}. 
+\end{properties}
+
+\begin{remark}
+    Note that Grundy number here refers to the modified Grundy Number which we calculated above for Advanced Nim
+\end{remark}
+
+\begin{example}
+    \begin{enumerate}
+        \item \texttt{Input} : Size of piles of coins are = \{ 6, 4, 8 \} \\ \texttt{Output} : \textcolor{blue}{Player 1} wins! \\ \texttt{Explanation} : Grundy numbers for each pile are \{ 5, 3, 7 \} so  $NimSum = (5 \oplus 3 \oplus 7) = 1$, which is nonzero
+        \item \texttt{Input} : Size of piles of coins are = \{ 4, 9, 10 \} \\ \texttt{Output} : \textcolor{red}{Player 2} wins! \\ \texttt{Explanation} : Grundy numbers for each pile are \{ 3, 10, 9 \} so  $NimSum = (3 \oplus 10 \oplus 9) = 0$
+    \end{enumerate}
+\end{example}
+
+\subsection{Code Implementation for Advanced Nim}
+
+\subsubsection{Using Dynamic Programming}
+We implemented the dynamic programming approach to determine the outcome of such play using \textbf{Sqrauge Grundy} themorem and \textbf{MEX Principle}. The explaination of working of our code is given in the comments -
+\begin{minted}[linenos=true]{cpp}
+#include <iostream>
+#include <bits/stdc++.h>
+using namespace std;
+
+#define LOG(x) cout << x << endl
+
+// This function finds the MEX value of a set of values which is
+// present in a list named "arr" using a simple algoritm.
+// In that algorithm we iterate through the elements of the array, 
+// and negate the element which has index equal to the current element
+// After doing this process for all teh elements we simply finds the 
+// index which has a non negative element adn returns it's index.
+int find_mex(int index, vector<vector<int>>& dp){
+    vector<int>arr = dp[1];
+    arr[index] = dp[0][index];
+    int i=0;
+    // Handling the case for 0.
+    for(int i=0; i<=index; i++){
+        arr[i] = arr[i] + 1;
+    }
+    // Negating the elements
+    for(int i=0; i<=index; i++){
+        int temp = arr[i];
+        if(abs(temp)-1 <= index){
+            arr[abs(temp) - 1] = -arr[abs(temp) - 1];
+        }
+    }
+    // Finding the index which has +ve element.
+    for(i=0; i<=index; i++){
+        if(arr[i] > 0){
+            break;
+        }
+    }
+    return i;
+}
+
+int get_Nimber_AdvNim(vector<int>& pile){
+    // Getting the max_size of the DP array.
+    int max_val = INT_MIN;
+    for(auto i:pile){
+        max_val = max(i, max_val);
+    }
+    // Creating the vector(array)
+    vector<vector<int>> dp(2);
+    // dp[0] ==> An array which has the nimber equivalent
+    // to the standard NIM game
+    dp[0] = vector<int>(max_val+1, 0);
+    // dp[0] ==> An array which consists of the nimber equivalent
+    // of the Advanced NIM game
+    dp[1] = vector<int>(max_val+1, 0);
+    for(int i=0; i<max_val+1; i++){
+        dp[0][i] = i;
+    }
+    // Finding the Nimber value for all the pile sizes less that
+    // and equal to the max pile size.
+    for(int i=1; i<dp[0].size(); i++){
+        dp[1][i] = find_mex(i, dp);
+    }
+    // Finding the final nimber equivalent of all the piles using "XOR SUM".
+    int final_ans = 0;
+    for(auto i:pile){
+        final_ans^=dp[1][i];
+    }
+    // returning the final nimber equivalent of the entire game.
+    return final_ans;
+}
+
+int main(){
+    cout << "Input Number of Piles: ";
+    int num_of_pile;
+    cin >> num_of_pile;
+    LOG("");
+    cout << "Input Pile Sizes for each of them: ";
+    vector<int> piles(num_of_pile);
+    for(int i=0; i<num_of_pile; i++){
+        cin >> piles[i];
+    }
+    int final_ans = get_Nimber_AdvNim(piles);
+    LOG("");
+    LOG("Nimber Equivalent: " << final_ans);
+    // If the nimber value is "0" then that's a P position and Second Player wins.
+    if(final_ans == 0){
+        LOG("");
+        LOG("Second Player Wins !!");
+    }
+    // If the nimber value is non zero that that's a N position and First Player Wins.
+    else{
+        LOG("");
+        LOG("First Player Wins !!");
+    }
+    return 0;
+}
+\end{minted}
+
+\subsubsection{Using Theoretical result of Grundy Number}
+\begin{minted}[linenos=true]{cpp}
+#include <iostream>
+#include <bits/stdc++.h>
+using namespace std;
+
+// Simple implementation using the result obtained 
+// of Grundy number and winning state
+void game(vector<int>& piles){
+    int Nimsum = 0;
+    for (int i = 0; i < piles.size(); i++){
+        // If the size of the pile is odd then it's Grundy Number will be G(N+1)
+        if (piles[i] % 2 == 1)
+            Nimsum ^= (piles[i] + 1);
+        // If the size of the pile is even then it's Grundy Number will be G(N-1)
+        else
+            Nimsum ^= (piles[i] - 1);
+    }
+    // If the Nim sum is non-zero then A will win the game
+    if (Nimsum != 0){
+        cout << "First Player Wins !!" << endl;
+    }
+    // If the Nim sum is zero then B will win the game
+    else{
+        cout << "Second Player Wins !!" << endl;
+    }
+}
+
+int main(){
+    cout << "Input Number of Piles: ";
+    int num_of_pile;
+    cin >> num_of_pile;
+    cout << "Input Pile Sizes for each of them: ";
+    vector<int> piles(num_of_pile);
+    for(int i=0; i<num_of_pile; i++){
+        cin >> piles[i];
+    }
+    game(piles);
+}
+\end{minted}
+
+\subsubsection{Running Instructions}
+If the name of the C++ file with this code is advanced\_nim\_game.cpp, then compile it by running -
+\begin{center}
+    \texttt{g++ -o game advanced\_nim\_game.cpp}
+\end{center}
+This will create a binary file named \texttt{game} and then you can execute that by command -
+\begin{center}
+    \texttt{./game}
+\end{center}
+The codes we have written are interactive and will ask for the input of number of piles and number of coins in each pile, and then provide you the winning player. 
+
+\section{References}
+\begin{itemize}
+    \item https://cp-algorithms.com/game\_theory/sprague-grundy-nim.html#crosses-crosses
+    \item Game Theory A Playful Introduction by Matt DeVos, Deborah A. Kent
+    \item https://www.scaler.com/topics/data-structures/advanced-nim-game/   
+    \item https://www.geeksforgeeks.org/combinatorial-game-theory-set-2-game-nim/
+\end{itemize}
+
+\end{document}
