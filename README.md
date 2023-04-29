@@ -1,6 +1,6 @@
 # Zero-Move-Nim
 
-This is about determining the outcome of a game of similar to **Nim** called **Advanced Nim** or **Zero Move Nim** which has a modification of an extra condition to Nim, about selecting zero number of stones from a pile. Such a move can only be played once and from a non empty pile.
+This is about determining the outcome of a game similar to **Nim** called **Advanced Nim** or **Zero Move Nim**, which has a modification of an extra condition to Nim, about selecting zero number of stones from a pile in a move. Such a move can only be played once for a pile and from a non empty pile.
 
 ## Implementation
 
